@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Nov 23 15:29:59 2022
-
-@author: ezotova
-"""
 import numpy as np 
 
+
+# functions to process captcha images
 def bfs(visited, queue, array, node):
     # I make BFS itterative instead of recursive
     def getNeighboor(array, node):
@@ -31,7 +27,6 @@ def bfs(visited, queue, array, node):
         current_node = queue.pop(0)
         for neighboor in getNeighboor(array, current_node):
             if neighboor not in visited:
-    #             print(neighboor)
                 visited.add(neighboor)
                 queue.append(neighboor)
 
