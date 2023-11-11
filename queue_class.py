@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
 
 import base64
@@ -66,13 +67,13 @@ class QueueChecker:
         except NoSuchElementException:
             return mark
        
-    def get_driver(self): 
-        option = webdriver.ChromeOptions()
-        option.add_argument("start-maximized")
-        driver = webdriver.Chrome(ChromeDriverManager(driver_version='119.0.6045.124').install(), options=option)
-        # driver = webdriver.Chrome(ChromeDriverManager(driver_version='114.0.5735.90').install()), options=option)
-        driver.get('https://www.google.com/')
-        return driver
+    # def get_driver(self): 
+    #     option = webdriver.ChromeOptions()
+    #     option.add_argument("start-maximized")
+    #     driver = webdriver.Chrome(ChromeDriverManager(driver_version='119.0.6045.124').install(), options=option)
+    #     # driver = webdriver.Chrome(ChromeDriverManager(driver_version='114.0.5735.90').install()), options=option)
+    #     driver.get('https://www.google.com/')
+    #     return driver
     
     def screenshot_captcha(self, driver, error_screen=False): 
 		   # make a screenshot of the window, crop the image to get captcha only, 
@@ -120,11 +121,12 @@ class QueueChecker:
         return digits
 
     def check_queue(self): 
-        
-        driver = self.get_driver()
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        driver = webdriver.Chrome(ChromeDriverManager(driver_version='119.0.6045.124').install(), options=chrome_options)
         driver.maximize_window()
         driver.get(self.url) 
-        
+            
         error = True
         error_screen = False
         # iterate until captcha is recognized 
@@ -141,9 +143,8 @@ class QueueChecker:
                 driver.find_element(By.XPATH, self.button_b).click()
 
             if self.error_code: 
-                print('Code error')
-                sys.exit('Защитный код заявки задан неверно. Не могу найти данные для записи в очередь.')
-
+                logging.info('Защитный код заявки задан неверно. Проверьте правильность введенных данных')
+                sys.exit('Защитный код заявки задан неверно. Проверьте правильность введенных данных')
 
             window_after = driver.window_handles[0]
             driver.switch_to.window(window_after)
@@ -168,6 +169,3 @@ class QueueChecker:
             logging.info('{} - no free timeslots for now'.format(datetime.date.today()))
             
         driver.quit()
-
-# queue_checker = QueueChecker()
-# queue_checker.check_queue()
