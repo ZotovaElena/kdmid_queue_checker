@@ -18,7 +18,7 @@ Then in _config.py_ file indicate the path to Tesseract.
 
 *Chrome*
 
-*Python 3.9* 
+*Python 3.11* 
 
 The script was depeloped and tested in Windows Anaconda environment for the consulate in Madrid
 
@@ -55,9 +55,7 @@ The logs are saved in queue.log
 
 ### TODO 
 
-- Ubuntu server version with browser imitation 
-
-- Option to send an email about existing appointments without taking it. 
+- Option to send info about existing appointments without taking it. 
 
 - User Interface
 
