@@ -41,3 +41,18 @@ class CheckingResponseModel(BaseModel):
                 "message": "The queue is over"
             }
         }
+
+class ErrorResponseModel(BaseModel):
+    status: str = Field(..., example='success')
+    message: str = Field(..., example='The queue is over')
+    __annotations__ = {
+        "status": str,
+        "message": str
+    }
+    class Config: 
+        schema_extra = {
+            "example": {
+                "status": "success",
+                "message": "The queue is over"
+            }
+        }

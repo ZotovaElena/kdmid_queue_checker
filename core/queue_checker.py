@@ -5,8 +5,8 @@ import pytesseract
 import config
 import time 
 import datetime
-import sys 
 import os
+import json
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -43,11 +43,13 @@ class QueueChecker:
         self.image_name = 'captcha_processed.png'
         self.screen_name = "screenshot0.png"
         self.button_dalee = "//input[@id='ctl00_MainContent_ButtonA']"
-        self.button_b = "//input[@id='ctl00_MainContent_ButtonB']"
+        self.button_inscribe = "//input[@id='ctl00_MainContent_ButtonB']"
         self.main_button_id = "//input[@id='ctl00_MainContent_Button1']" 
         self.text_form = "//input[@id='ctl00_MainContent_txtCode']"
         self.checkbox = "//input[@id='ctl00_MainContent_RadioButtonList1_0']" 
         self.error_code = "//span[@id='ctl00_MainContent_Label_Message']"
+        # self.error_code = "//div[@class='error_msg']"
+        self.captcha_error = "//span[@id='ctl00_MainContent_lblCodeErr']"
 
     def get_url(self, kdmid_subdomain, order_id, code):
         url = 'http://'+kdmid_subdomain+'.kdmid.ru/queue/OrderInfo.aspx?id='+order_id+'&cd='+code
@@ -56,9 +58,16 @@ class QueueChecker:
         self.code = code     
         return url
 
-    def write_success_file(self, text): 
-        with open(self.order_id+"_"+self.code+"_success.txt", mode = "w", encoding="utf-8") as f:
-            f.write(text)       
+    def write_success_file(self, text, status): 
+        d ={}
+        d['status'] = status
+        d['message'] = text
+        if d['status'] == 'success':
+            with open(self.order_id+"_"+self.code+"_success.json", 'w', encoding="utf-8") as f:
+                json.dump(d, f)
+        elif d['status'] == 'error':
+            with open(self.order_id+"_"+self.code+"_error.json", 'w', encoding="utf-8") as f:
+                json.dump(d, f)    
         
     def check_exists_by_xpath(self, xpath, driver):
         mark = False
@@ -116,8 +125,8 @@ class QueueChecker:
         return digits
 
     def check_queue(self, kdmid_subdomain, order_id, code): 
-        message = None
-        status = None
+        message = ''
+        status = ''
         print('Checking queue for: {} - {}'.format(order_id, code))
         logging.info('Checking queue for: {} - {}'.format(order_id, code))
         chrome_options = Options()
@@ -135,51 +144,80 @@ class QueueChecker:
             digits = self.recognize_image()
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.text_form))).send_keys(str(digits))
 
-            time.sleep(5)       
+            time.sleep(1)       
+            # if the security code is wrong, expired or not from this order, stop the process
+            try:
+                element = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, self.error_code))
+                )
+                status = 'error'
+                message = 'The security code {} is written wrong, has expired or is not from this order. Theck it and try again.'.format(self.code)
+                
+                print('in queue checker', message)
+                self.write_success_file(str(message), str(status))	
+                logging.warning(f'{message}')
+                break
+            except:
+                pass
 
             if self.check_exists_by_xpath(self.button_dalee, driver): 
                 driver.find_element(By.XPATH, self.button_dalee).click()
-            
-            if self.check_exists_by_xpath(self.button_b, driver): 
-                driver.find_element(By.XPATH, self.button_b).click()
+                print('Button Dalee clicked')
 
-            print(self.check_exists_by_xpath(self.error_code, driver))
-            d = driver.find_element(By.XPATH, self.error_code).text
-            print(d)
-            if self.check_exists_by_xpath(self.error_code, driver): 
-                print()
-                message = 'The code is incorrect, check the code and try again'
-                logging.warning(f'{message}')
-                status = 'error'
-                break  
-                # return message, status
+            if self.check_exists_by_xpath(self.button_inscribe, driver): 
+                driver.find_element(By.XPATH, self.button_inscribe).click()
+                print('Button Inscribe clicked')
+
             window_after = driver.window_handles[0]
             driver.switch_to.window(window_after)
+
             error = False
             
             try: 
-               driver.find_element(By.XPATH, self.main_button_id)    
+                driver.find_element(By.XPATH, self.main_button_id)    
+                print(driver.find_element(By.XPATH, self.main_button_id))
             except: 
                 error = True
+                print(error)
                 error_screen = True
                 driver.find_element(By.XPATH, self.text_form).clear()
-				
-        if self.check_exists_by_xpath(self.checkbox, driver): 			
-            driver.find_element(By.XPATH,self.checkbox).click()
-            check_box = driver.find_element(By.XPATH, self.checkbox)
-            val = check_box.get_attribute("value")
-            message = 'Appointment at: {}'.format(val)
-            logging.info()
-            WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.main_button_id))).click()           
-            self.write_success_file(str(val))			
-            status = 'success'
-        else: 
-            message = '{} - no free timeslots for now'.format(datetime.date.today())
+
+        try: 
+            if self.check_exists_by_xpath(self.checkbox, driver): 			
+                driver.find_element(By.XPATH,self.checkbox).click()
+                check_box = driver.find_element(By.XPATH, self.checkbox)
+                val = check_box.get_attribute("value")
+                message = 'Appointment date: {}, time: {}, purpose: {}'.format(
+                    val.split('|')[1].split('T')[0], 
+                    val.split('|')[1].split('T')[1], 
+                    val.split('|')[-1]
+                    )
+                logging.info(message)
+                WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.main_button_id))).click()           
+                self.write_success_file(str(val), str(status))			
+                status = 'success'
+            else: 
+                message = '{} - no free timeslots for now'.format(datetime.date.today())
+                print(message)
+                logging.info(message)
+        except: 
+            message = '{} --- no free timeslots for now'.format(datetime.date.today())
             logging.info(message)
             
         driver.quit()
-        return message, status
+        if os.path.exists(self.screen_name):
+            os.remove(self.screen_name)
+        # return message, status
+
 
 checker = QueueChecker()
-res, sta = checker.check_queue('madrid', '130238', 'CD9E05C1')
-print(res, sta)
+
+kdmid_subdomain = 'madrid' 
+order_id = '130238' 
+code = 'CD9E05C1' 
+
+# 'madrid', '130238', 'CD9E05C1'
+# 'madrid', '151321', '5CCF3A7C'
+checker.check_queue('madrid', '151321', '5CCF3A7C')
+
+# print(res, sta)
