@@ -17,7 +17,25 @@ from core.queue_checker import QueueChecker
 
 # every_hours = 3
 
-# checker = QueueChecker()
+kdmid_subdomain = 'madrid' 
+order_id = '130238' 
+code = 'CD9E05C1' 
+
+checker = QueueChecker()
+
+def run_check_queue(kdmid_subdomain, order_id, code, every_hours=1):
+    success_file = order_id+"_"+code+"_success.json"
+    error_file = order_id+"_"+code+"_error.json"
+
+    while True:
+        checker.check_queue(kdmid_subdomain, order_id, code)
+
+        if os.path.isfile(success_file) or os.path.isfile(error_file):
+            break
+
+        time.sleep(every_hours*3600)  # Pause for every_hours * hour before the next check
+
+run_check_queue(kdmid_subdomain, order_id, code)
 
 # def run_check_queue(kdmid_subdomain, order_id, code, every_hours=1, event: threading.Event):
 #     success_file = order_id + "_" + code + "_success.json"
