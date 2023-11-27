@@ -8,6 +8,7 @@ import datetime
 import os
 import json
 
+import selenium
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -142,6 +143,7 @@ class QueueChecker:
         while error: 
             self.screenshot_captcha(driver, error_screen)
             digits = self.recognize_image()
+
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.text_form))).send_keys(str(digits))
 
             time.sleep(1)       
@@ -153,7 +155,6 @@ class QueueChecker:
                 status = 'error'
                 message = 'The security code {} is written wrong, has expired or is not from this order. Theck it and try again.'.format(self.code)
                 
-                print('in queue checker', message)
                 self.write_success_file(str(message), str(status))	
                 logging.warning(f'{message}')
                 break
@@ -162,11 +163,9 @@ class QueueChecker:
 
             if self.check_exists_by_xpath(self.button_dalee, driver): 
                 driver.find_element(By.XPATH, self.button_dalee).click()
-                print('Button Dalee clicked')
 
             if self.check_exists_by_xpath(self.button_inscribe, driver): 
                 driver.find_element(By.XPATH, self.button_inscribe).click()
-                print('Button Inscribe clicked')
 
             window_after = driver.window_handles[0]
             driver.switch_to.window(window_after)
@@ -175,11 +174,17 @@ class QueueChecker:
             
             try: 
                 driver.find_element(By.XPATH, self.main_button_id)    
-                print(driver.find_element(By.XPATH, self.main_button_id))
             except: 
                 error = True
-                print(error)
                 error_screen = True
+
+                try:
+                    element = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, self.text_form))
+                    )
+                except:
+                    print("Element not found")
+
                 driver.find_element(By.XPATH, self.text_form).clear()
 
         try: 
@@ -193,11 +198,13 @@ class QueueChecker:
                     val.split('|')[-1]
                     )
                 logging.info(message)
-                WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.main_button_id))).click()           
-                self.write_success_file(str(val), str(status))			
-                status = 'success'
+                WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.main_button_id))).click()  
+                status = 'success'         
+                self.write_success_file(message, str(status))			
+                
             else: 
                 message = '{} - no free timeslots for now'.format(datetime.date.today())
+                status = 'in process'
                 print(message)
                 logging.info(message)
         except: 
@@ -207,17 +214,20 @@ class QueueChecker:
         driver.quit()
         if os.path.exists(self.screen_name):
             os.remove(self.screen_name)
-        # return message, status
+        if os.path.exists(self.image_name):
+            os.remove(self.image_name)         
+              
+        return message, status
 
 
-checker = QueueChecker()
+# checker = QueueChecker()
 
-kdmid_subdomain = 'madrid' 
-order_id = '130238' 
-code = 'CD9E05C1' 
+# kdmid_subdomain = 'madrid' 
+# order_id = '130238' 
+# code = 'CD9E05C1' 
 
 # 'madrid', '130238', 'CD9E05C1'
 # 'madrid', '151321', '5CCF3A7C'
-checker.check_queue('madrid', '151321', '5CCF3A7C')
+# checker.check_queue('madrid', '151321', '5CCF3A7C')
 
 # print(res, sta)
