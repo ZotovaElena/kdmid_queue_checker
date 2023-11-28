@@ -2,12 +2,17 @@ import time
 import os
 import argparse 
 
-from queue_checker import QueueChecker
-
+from queue_class import QueueChecker
 
 # kdmid_subdomain = 'madrid' 
 # order_id = '130238' 
 # code = 'CD9E05C1' 
+
+# https://warsaw.kdmid.ru/queue/OrderInfo.aspx?id=85914&cd=824D737D
+
+kdmid_subdomain = 'warsaw'
+order_id = '85914'
+code = '824D737D'
 
 kdmid_subdomain = 'barcelona' 
 order_id = '205619' 
@@ -16,17 +21,18 @@ code = '8367159E'
 
 every_hours = 3
 
-def run(queue_checker, every_hours):
+def run(queue_checker, every_hours): 
 	success = False
 	while not success:
-		if not os.path.isfile(queue_checker.order_id+"_"+queue_checker.code+"_success.txt"):
-			queue_checker.check_queue()
-			time.sleep(every_hours*3600)
-		else:
-			print('file exists, exiting')
-			success = True
+	    if not os.path.isfile(queue_checker.order_id+"_"+queue_checker.code+"_success.txt"): 
+	        queue_checker.check_queue()
+	        time.sleep(every_hours*3600)
+	    else: 
+	        print('file exists, exiting')
+	        success = True
 
 queue_checker = QueueChecker(kdmid_subdomain, order_id, code)
+ 	
 run(queue_checker, 3)
 
 
