@@ -51,9 +51,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 
 
 async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    """Stores the info from the user."""
-    user_info = update.message.text
-    print(user_info)
+    """Processes the info from the user."""
+    user_info = update.message.text 
 
     # Example of ULR https://warsaw.kdmid.ru/queue/OrderInfo.aspx?id=85914&cd=824D737D
     # Check, if user provides URL or list
@@ -64,7 +63,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         code = user_info.split('=')[-1]
         print(kdmid_subdomain)
         print(order_id, code)
-    else: 
+    elif  ',' in user_info: 
         kdmid_subdomain, order_id, code = user_info.strip().split(',')
         kdmid_subdomain = kdmid_subdomain.strip()
         order_id = order_id.strip()
@@ -76,18 +75,22 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
             await update.message.reply_text(f"Error in order number, check that it is ok and there is a list with commas")
         if code is None: 
             await update.message.reply_text(f"Error in code, check that it is ok and there is a list with commas")
+    else: 
+        await update.message.reply_text(f"Проверьте правильность ссылки или списка в этом порядке: город, номер, код")
 
+    # here the checking iteration starts 
+    # the process ends when one of this files is written to the disk, success or error
     success_file = order_id+"_"+code+"_success.json"
     error_file = order_id+"_"+code+"_error.json"
-
+    # initialize the main Checker
     checker = QueueChecker()
 
     success = False
-
+    # iterate until the success/error file is written and success variable changes to True
     while not success:
         # 
         message, status = checker.check_queue(kdmid_subdomain, order_id, code)
-        await update.message.reply_text(f"Queue checking status: {message}")
+        await update.message.reply_text(f"Queue checking status: {message}") # send message to the user
 
         if os.path.isfile(success_file) or os.path.isfile(error_file):
             success = True
