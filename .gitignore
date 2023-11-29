@@ -10,4 +10,5 @@ success_files
 img
 logs
 sample.txt
-*key
+*.key
+_*.*

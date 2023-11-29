@@ -89,7 +89,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     success = False
     # iterate until the success/error file is written and success variable changes to True
     while not success:
-        # 
+        # goes to the website of the indicated consulate, checks for a timeslot
         message, status = checker.check_queue(kdmid_subdomain, order_id, code)
         await update.message.reply_text(f"Queue checking status: {message}") # send message to the user
 
@@ -103,7 +103,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 
     return ConversationHandler.END # may be shouldn't be the end?
 
-
+# user should have some possibility to cancel the process 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
