@@ -1,4 +1,3 @@
-
 import cv2
 import numpy as np 
 import pytesseract
@@ -31,7 +30,7 @@ logging.basicConfig(filename='queue.log',
                     datefmt='%H:%M:%S',
                     level=logging.INFO)
 
-pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_PATH
+# pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_PATH
 
 
 
@@ -131,9 +130,11 @@ class QueueChecker:
         print('Checking queue for: {} - {}'.format(order_id, code))
         logging.info('Checking queue for: {} - {}'.format(order_id, code))
         chrome_options = Options()
-        # chrome_options.add_argument("--headless")
-        driver = webdriver.Chrome(ChromeDriverManager(driver_version='119.0.6045.124').install(), options=chrome_options)
+        chrome_options.add_argument("--headless")
+        # driver = webdriver.Chrome(ChromeDriverManager(driver_version='114.0.5735.90').install(), options=chrome_options) # driver=webdriver.Chrome(ChromeDriverManager(version='114.0.5735.90').install())
+        driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", options=chrome_options)
         driver.maximize_window()
+        
         url = self.get_url(kdmid_subdomain, order_id, code)
         driver.get(url)
             
@@ -184,6 +185,11 @@ class QueueChecker:
                     )
                 except:
                     print("Element not found")
+                    message = 'Error happened, check the info you proveided'
+                    status = 'error'
+                    self.write_success_file(message, status)
+                    logging.warning(f'{message}')
+                    return message, status
 
                 driver.find_element(By.XPATH, self.text_form).clear()
 

@@ -18,9 +18,22 @@ Then in _config.py_ file indicate the path to Tesseract.
 
 *Chrome*
 
-*Python 3.11* 
+*Python 3.10* 
 
 The script was depeloped and tested in Windows Anaconda environment for the consulate in Madrid
+
+### UBUNTU 
+
+Install dependencies for Tesseract and image processing
+
+```
+sudo apt-get install tesseract-ocr
+sudo apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+sudo apt-get install python3-opencv -y
+sudo apt-get install chromium-chromedriver -y
+```
+
+Then
 
 ```
 git clone https://github.com/ZotovaElena/kdmid_queue_checker.git
