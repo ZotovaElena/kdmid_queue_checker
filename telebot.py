@@ -96,7 +96,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
             success = True
 
         if not success: 
-            time.sleep(1*60)  # Pause for every_hours * hour before the next check
+            time.sleep(1*60)  # Pause for every_hours * hour before the next check. One hour is 3600 seconds
     
     await update.message.reply_text(f"Result: {message}") # should not appear befor While ends
 
