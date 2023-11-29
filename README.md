@@ -9,20 +9,13 @@ which means enter the page with your order number and code and see if free slots
 This bot is designed to make the iterative checking process automatic and get the first nearest timeslot. 
 If success, you will get an email from the consulate with the information about your appointment. 
 
-## Requirements  
+### Requirements for UBUNTU
 
-*Tesseract* 
-
-Tesseract OCR is used to recognize captcha digits. It should be installed on the machine. For Windows, see the installation instructons here https://github.com/UB-Mannheim/tesseract/wiki
-Then in _config.py_ file indicate the path to Tesseract. 
+*Tesseract* OCR is used to recognize captcha digits. It should be installed on the machine. 
 
 *Chrome*
 
 *Python 3.10* 
-
-The script was depeloped and tested in Windows Anaconda environment for the consulate in Madrid
-
-### UBUNTU 
 
 Install dependencies for Tesseract and image processing
 
@@ -33,10 +26,10 @@ sudo apt-get install python3-opencv -y
 sudo apt-get install chromium-chromedriver -y
 ```
 
-Then
+Then clone the branch version_ubuntu
 
 ```
-git clone https://github.com/ZotovaElena/kdmid_queue_checker.git
+git clone -b version_ubuntu https://github.com/ZotovaElena/kdmid_queue_checker.git
 
 ```
 
