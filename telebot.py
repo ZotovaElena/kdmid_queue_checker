@@ -13,6 +13,7 @@ from telegram.ext import (
 )
 
 from core.queue_checker import QueueChecker
+from config import EVERY_HOURS
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -96,7 +97,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
             success = True
 
         if not success: 
-            time.sleep(1*60)  # Pause for every_hours * hour before the next check. One hour is 3600 seconds
+            time.sleep(EVERY_HOURS*3600)  # Pause for every_hours * hour before the next check. One hour is 3600 seconds
     
     await update.message.reply_text(f"Result: {message}") # should not appear befor While ends
 
