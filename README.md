@@ -35,6 +35,19 @@ git clone -b version_ubuntu https://github.com/ZotovaElena/kdmid_queue_checker.g
 
 - install requirements in conda or pip virtual environment 
 
+#### pip 
+```
+pip install virtualenv
+virtualenv your_venv
+source your_venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### conda
+```
+conda create --name your_venv --file requirements.txt
+```
+
 ## CLI USE 
 
 - execute the following command, where: 
