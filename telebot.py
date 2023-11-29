@@ -39,11 +39,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     await update.message.reply_text(
         "Привет! Это бот для автоматической проверки статуса очереди в Консульство РФ в любом городе.\n"
         "Вы можете прислать данные для проверки в одном из двух форматах: \n\n"
-        "1 - ссылка для записи на прием и проверки Вашей заявки - в письме от queue-robot@kdmid.ru 'Запись в список ожидания' \n"
+        "1. Предпочитательно. Ссылка для записи на прием и проверки Вашей заявки - в письме от queue-robot@kdmid.ru 'Запись в список ожидания' \n"
         "Например: https://warsaw.kdmid.ru/queue/OrderInfo.aspx?id=85914&cd=824D737D \n\n" 
-        "2 - через запятую латинскими буквами: город (как в командной строке), номер заявки, защитный код\n"
+        "2. Через запятую латинскими буквами: город (как в командной строке), номер заявки, защитный код\n"
         "Например: madrid, 130238, 8367159E\n"
-        "В случае успеха, вам придет письмо на укзанный при регистрации адрес.\n"
+        "В случае успеха, вам придет письмо на укзанный при регистрации адрес. Это может быть как через несколько часов, так и через несколько суток. Наберитесь терпения. \n"
         "Это абсолютно БЕСПЛАТНО\n\n"
         "Чтобы начать, напишите /start"
     )
@@ -54,7 +54,9 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     """Stores the info from the user."""
     user_info = update.message.text
     print(user_info)
-        # https://warsaw.kdmid.ru/queue/OrderInfo.aspx?id=85914&cd=824D737D
+
+    # Example of ULR https://warsaw.kdmid.ru/queue/OrderInfo.aspx?id=85914&cd=824D737D
+    # Check, if user provides URL or list
     if user_info.startswith('http'): 
         print(user_info.split('/'))
         kdmid_subdomain = user_info.split('/')[2].split('.')[0]
@@ -67,8 +69,13 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         kdmid_subdomain = kdmid_subdomain.strip()
         order_id = order_id.strip()
         code = code.strip()
-        if kdmid_subdomain is None or order_id is None or code is None: 
-            await update.message.reply_text(f"Please try again")
+        # tell the user if something is wrong
+        if kdmid_subdomain is None: 
+            await update.message.reply_text(f"Error in city, check that it is spelled properly and there is a list with commas")
+        if order_id is None:
+            await update.message.reply_text(f"Error in order number, check that it is ok and there is a list with commas")
+        if code is None: 
+            await update.message.reply_text(f"Error in code, check that it is ok and there is a list with commas")
 
     success_file = order_id+"_"+code+"_success.json"
     error_file = order_id+"_"+code+"_error.json"
@@ -78,7 +85,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     success = False
 
     while not success:
-
+        # 
         message, status = checker.check_queue(kdmid_subdomain, order_id, code)
         await update.message.reply_text(f"Queue checking status: {message}")
 

@@ -35,6 +35,8 @@ git clone -b version_ubuntu https://github.com/ZotovaElena/kdmid_queue_checker.g
 
 - install requirements in conda or pip virtual environment 
 
+## CLI USE 
+
 - execute the following command, where: 
 
 *--subdomain* is the city of the consulate 
@@ -48,16 +50,23 @@ It is not recommended to check the page too often not to generate suspisious beh
 
 
 ```
-python queue_bot.py --subdomain madrid --order_id 123610 --code 7AE8EFCC --every_hours 3
+python cli.py --subdomain madrid --order_id 123610 --code 7AE8EFCC --every_hours 3
 ```
 
 - execute in background mode:
 
 ```
-python queue_bot.py --subdomain madrid --order_id 123610 --code 7AE8EFCC --every_hours 3 > output.txt & 
+python cli.py --subdomain madrid --order_id 123610 --code 7AE8EFCC --every_hours 3 > output.txt & 
 ```
 
 The logs are saved in queue.log
+
+### TELEGRAM BOT
+
+```
+python telebot.py 
+
+```
 
 ### TODO 
 
@@ -65,4 +74,3 @@ The logs are saved in queue.log
 
 - User Interface
 
-- Telegram bot
