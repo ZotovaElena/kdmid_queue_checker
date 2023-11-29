@@ -92,15 +92,16 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         # goes to the website of the indicated consulate, checks for a timeslot
         message, status = checker.check_queue(kdmid_subdomain, order_id, code)
         await update.message.reply_text(f"Queue checking status: {message}") # send message to the user
-
+        # check is the success/error files are written
         if os.path.isfile(success_file) or os.path.isfile(error_file):
             success = True
 
         if not success: 
             time.sleep(EVERY_HOURS*3600)  # Pause for every_hours * hour before the next check. One hour is 3600 seconds
     
-    await update.message.reply_text(f"Result: {message}") # should not appear befor While ends
+    await update.message.reply_text(f"Result: {message}") # should not appear before While ends
 
+    # TODO maybe at this moment remove success files
     return ConversationHandler.END # may be shouldn't be the end?
 
 # user should have some possibility to cancel the process 

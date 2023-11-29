@@ -78,7 +78,6 @@ The logs are saved in queue.log
 
 ```
 python telebot.py 
-
 ```
 
 ### TODO 
