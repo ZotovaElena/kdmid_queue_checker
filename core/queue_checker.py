@@ -160,10 +160,10 @@ class QueueChecker:
             window_after = driver.window_handles[0]
             driver.switch_to.window(window_after)
 
-            error = False
+            error = False # stop the iteration 
             
             try: 
-                driver.find_element(By.XPATH, self.main_button_id)    
+                driver.find_element(By.XPATH, self.main_button_id)    # check if there is main button to click, if not, return to captcha
             except: 
                 error = True
                 error_screen = True
@@ -183,12 +183,14 @@ class QueueChecker:
                     return message
                 # clear the text form and repeat the process
                 driver.find_element(By.XPATH, self.text_form).clear()
+
         # we are on the page with calendar, if the checkbox is found, click it and write the success file, 
         # else send a message to the user that there are no free timeslots
         try: 
             if self.check_exists_by_xpath(self.checkbox, driver): 			
                 driver.find_element(By.XPATH,self.checkbox).click()
                 check_box = driver.find_element(By.XPATH, self.checkbox)
+                
                 val = check_box.get_attribute("value")
                 message = 'Appointment date: {}, time: {}, purpose: {}'.format(
                     val.split('|')[1].split('T')[0], 
