@@ -24,8 +24,6 @@ logging.basicConfig(filename='queue.log',
 
 with open('token.key', 'r') as fh:
     data = fh.read()
-    # print(data)
-
 TOKEN = data.strip()
 
 # set higher logging level for httpx to avoid all GET and POST requests being logged
@@ -74,26 +72,23 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         code = code.strip()
         # tell the user if something is wrong
         if kdmid_subdomain is None: 
-            await update.message.reply_text(f"Error in city, check that it is spelled properly and there is a list with commas")
+            await update.message.reply_text(f"Error, check everything is spelled properly and there is a list with commas")
         if order_id is None:
-            await update.message.reply_text(f"Error in order number, check that it is ok and there is a list with commas")
+            await update.message.reply_text(f"Error, check everything is spelled properly and there is a list with commas")
         if code is None: 
-            await update.message.reply_text(f"Error in code, check that it is ok and there is a list with commas")
+            await update.message.reply_text(f"Error, check everything is spelled properly and there is a list with commas")
     else: 
         await update.message.reply_text(f"Проверьте правильность ссылки или списка в этом порядке: город, номер, код")
 
-    # here the checking iteration starts 
-    # the process ends when one of this files is written to the disk, success or error
-    
+    #### the checking iteration starts ####
     # initialize the main Checker
     checker = QueueChecker(kdmid_subdomain, order_id, code)
-    # directory = f"{order_id}_{code}"
 
     success = False
     # iterate until the success/error file is written and success variable changes to True
     while not success:
-        # goes to the website of the indicated consulate, checks for a timeslot
-        message, status = checker.check_queue()
+        # goes to the website of the indicated consulate, checks for a timeslot, returns a message with a status
+        message = checker.check_queue()
         await update.message.reply_text(f"Queue checking status: {message}") # send message to the user
         # check is the success/error files are written
         if os.path.isfile(os.path.join(checker.directory, "success.json")) or os.path.isfile(os.path.join(checker.directory, "error.json")):
@@ -102,9 +97,9 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         if not success: 
             time.sleep(EVERY_HOURS*3600)  # Pause for every_hours * hour before the next check. One hour is 3600 seconds
     
-    await update.message.reply_text(f"Result: {message}") # should not appear before While ends
+    await update.message.reply_text(f"Проверка очереди закончилась: {message}") # should not appear before While ends
 
-    # TODO maybe at this moment remove success files
+    # TODO at this moment remove user data and success/error files from the directory
     return ConversationHandler.END # may be shouldn't be the end?
 
 # user should have some possibility to cancel the process 
@@ -115,7 +110,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
     )
-
     return ConversationHandler.END
 
 
@@ -134,8 +128,7 @@ def main() -> None:
     )
 
     application.add_handler(conv_handler)
-
-    # Run the bot until the user presses Ctrl-C
+    # Run the bot until Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
