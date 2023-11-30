@@ -30,9 +30,6 @@ logging.basicConfig(filename='queue.log',
                     datefmt='%H:%M:%S',
                     level=logging.INFO)
 
-# pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_PATH
-
-
 
 class QueueChecker: 
     def __init__(self, kdmid_subdomain, order_id, code):
@@ -134,7 +131,7 @@ class QueueChecker:
         driver.maximize_window()
         driver.get(self.url)     
         error = True
-        error_screen = False
+        error_screen = False # error if captcha is not recognized
         # iterate until captcha is recognized 
         while error: 
             self.screenshot_captcha(driver, error_screen)
@@ -170,7 +167,7 @@ class QueueChecker:
             except: 
                 error = True
                 error_screen = True
-
+                # if the text form to write captcha is not found, probably, it is "not a robot" captcha
                 try:
                     element = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((By.XPATH, self.text_form))
@@ -178,15 +175,16 @@ class QueueChecker:
                 except:
                     print("Element not found, probably 'not a robot' check")
                     
-                    message = 'Something went wrong, probably, error in the web page. Please, try again later.'
+                    message = 'Something went wrong, probably, error in the web page. Please, try again some minutes (hours) later.'
                     status = 'error'
                     self.write_success_file(message, status)
                     logging.warning(f'{message}')
                     logging.warning(f'{driver.page_source}')
                     return message
-
+                # clear the text form and repeat the process
                 driver.find_element(By.XPATH, self.text_form).clear()
-
+        # we are on the page with calendar, if the checkbox is found, click it and write the success file, 
+        # else send a message to the user that there are no free timeslots
         try: 
             if self.check_exists_by_xpath(self.checkbox, driver): 			
                 driver.find_element(By.XPATH,self.checkbox).click()
@@ -201,7 +199,6 @@ class QueueChecker:
                 WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.main_button_id))).click()  
                 status = 'success'         
                 self.write_success_file(message, str(status))			
-                
             else: 
                 message = '{} - no free timeslots for now'.format(datetime.date.today())
                 print(message)

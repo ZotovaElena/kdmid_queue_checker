@@ -15,25 +15,26 @@ from telegram.ext import (
 from core.queue_checker import QueueChecker
 from config import EVERY_HOURS
 
+
 logging.basicConfig(filename='queue.log',
                     filemode='a',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG,
                     handlers=[logging.FileHandler('queue.log'), logging.StreamHandler()]
 )
+# set higher logging level for httpx to avoid all GET and POST requests being logged
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+
 
 with open('token.key', 'r') as fh:
     data = fh.read()
 TOKEN = data.strip()
 
-# set higher logging level for httpx to avoid all GET and POST requests being logged
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
-logger = logging.getLogger(__name__)
-# logger = logging.getLogger('telegram.ext.Application')
 
 INFO, STATUS = range(2)
 
+# TODO interactive buttons for the user to start the process, cancel the process
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     """Starts the conversation and asks the user about their gender."""
@@ -58,13 +59,11 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     # Example of ULR https://warsaw.kdmid.ru/queue/OrderInfo.aspx?id=85914&cd=824D737D
     # Check, if user provides URL or list
     if user_info.startswith('http'): 
-        print(user_info.split('/'))
+        # print(user_info.split('/'))
+        user_info = user_info.strip()
         kdmid_subdomain = user_info.split('/')[2].split('.')[0]
         order_id = user_info.split('=')[1].split('&')[0]
         code = user_info.split('=')[-1]
-        print(kdmid_subdomain)
-        print(order_id, code)
-
     elif  ',' in user_info: 
         kdmid_subdomain, order_id, code = user_info.strip().split(',')
         kdmid_subdomain = kdmid_subdomain.strip()
@@ -90,10 +89,10 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         # goes to the website of the indicated consulate, checks for a timeslot, returns a message with a status
         message = checker.check_queue()
         await update.message.reply_text(f"Queue checking status: {message}") # send message to the user
-        # check is the success/error files are written
+        # stop the process if the success/error file is written
         if os.path.isfile(os.path.join(checker.directory, "success.json")) or os.path.isfile(os.path.join(checker.directory, "error.json")):
-            success = True
-
+            success = True   
+        # repeat the process after a pause
         if not success: 
             time.sleep(EVERY_HOURS*3600)  # Pause for every_hours * hour before the next check. One hour is 3600 seconds
     
@@ -102,7 +101,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     # TODO at this moment remove user data and success/error files from the directory
     return ConversationHandler.END # may be shouldn't be the end?
 
-# user should have some possibility to cancel the process 
+# TODO user should have some possibility to cancel the process 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
