@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-EVERY_HOURS=1
+EVERY_HOURS=2

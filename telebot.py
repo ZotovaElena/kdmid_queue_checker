@@ -15,9 +15,11 @@ from telegram.ext import (
 from core.queue_checker import QueueChecker
 from config import EVERY_HOURS
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+logging.basicConfig(filename='queue.log',
+                    filemode='a',
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.DEBUG,
+                    handlers=[logging.FileHandler('queue.log'), logging.StreamHandler()]
 )
 
 with open('token.key', 'r') as fh:
@@ -30,6 +32,7 @@ TOKEN = data.strip()
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+# logger = logging.getLogger('telegram.ext.Application')
 
 INFO, STATUS = range(2)
 
@@ -38,15 +41,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     """Starts the conversation and asks the user about their gender."""
 
     await update.message.reply_text(
-        "Привет! Это бот для автоматической проверки статуса очереди в Консульство РФ в любом городе.\n"
-        "Вы можете прислать данные для проверки в одном из двух форматах: \n\n"
-        "1. Предпочитательно. Ссылка для записи на прием и проверки Вашей заявки - в письме от queue-robot@kdmid.ru 'Запись в список ожидания' \n"
+        "Привет! Это бот для автоматической проверки статуса очереди в Консульство РФ в любом городе в любой стране, где есть российское консульство.\n"
+        "Вы можете прислать данные для проверки в одном из двух форматоа: \n\n"
+        "1. Предпочтительно. Ссылка для записи на прием и проверки Вашей заявки - в письме от queue-robot@kdmid.ru 'Запись в список ожидания' \n"
         "Например: https://warsaw.kdmid.ru/queue/OrderInfo.aspx?id=85914&cd=824D737D \n\n" 
-        "2. Через запятую латинскими буквами: город (как в командной строке), номер заявки, защитный код\n"
-        "Например: madrid, 130238, 8367159E\n"
-        "В случае успеха, вам придет письмо на укзанный при регистрации адрес. Это может быть как через несколько часов, так и через несколько суток. Наберитесь терпения. \n"
+        "2. Через запятую латинскими буквами: город, номер заявки, защитный код\n"
+        "Город должен быть написан, как в ссылке, например: warsaw, 130238, 8367159E\n"
+        "В случае успеха, вам придет письмо на укзанный при регистрации адрес. Это может быть как через несколько часов, так и через несколько суток. Наберитесь терпения. \n\n"
         "Это абсолютно БЕСПЛАТНО\n\n"
-        "Чтобы начать, напишите /start"
     )
     return INFO
 
@@ -64,6 +66,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         code = user_info.split('=')[-1]
         print(kdmid_subdomain)
         print(order_id, code)
+
     elif  ',' in user_info: 
         kdmid_subdomain, order_id, code = user_info.strip().split(',')
         kdmid_subdomain = kdmid_subdomain.strip()
@@ -81,19 +84,19 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 
     # here the checking iteration starts 
     # the process ends when one of this files is written to the disk, success or error
-    success_file = order_id+"_"+code+"_success.json"
-    error_file = order_id+"_"+code+"_error.json"
+    
     # initialize the main Checker
-    checker = QueueChecker()
+    checker = QueueChecker(kdmid_subdomain, order_id, code)
+    # directory = f"{order_id}_{code}"
 
     success = False
     # iterate until the success/error file is written and success variable changes to True
     while not success:
         # goes to the website of the indicated consulate, checks for a timeslot
-        message, status = checker.check_queue(kdmid_subdomain, order_id, code)
+        message, status = checker.check_queue()
         await update.message.reply_text(f"Queue checking status: {message}") # send message to the user
         # check is the success/error files are written
-        if os.path.isfile(success_file) or os.path.isfile(error_file):
+        if os.path.isfile(os.path.join(checker.directory, "success.json")) or os.path.isfile(os.path.join(checker.directory, "error.json")):
             success = True
 
         if not success: 

@@ -35,10 +35,11 @@ logging.basicConfig(filename='queue.log',
 
 
 class QueueChecker: 
-    def __init__(self):
-        self.kdmid_subdomain = ''
-        self.order_id = ''
-        self.code = ''
+    def __init__(self, kdmid_subdomain, order_id, code):
+        self.kdmid_subdomain = kdmid_subdomain
+        self.order_id = order_id
+        self.code = code
+        self.directory = os.path.join('userdata', f"{self.order_id}_{self.code}")
         self.url = 'http://'+self.kdmid_subdomain+'.kdmid.ru/queue/OrderInfo.aspx?id='+self.order_id+'&cd='+self.code
         self.image_name = 'captcha_processed.png'
         self.screen_name = "screenshot0.png"
@@ -51,23 +52,25 @@ class QueueChecker:
         # self.error_code = "//div[@class='error_msg']"
         self.captcha_error = "//span[@id='ctl00_MainContent_lblCodeErr']"
 
-    def get_url(self, kdmid_subdomain, order_id, code):
-        url = 'http://'+kdmid_subdomain+'.kdmid.ru/queue/OrderInfo.aspx?id='+order_id+'&cd='+code
-        self.kdmid_subdomain = kdmid_subdomain
-        self.order_id = order_id
-        self.code = code     
+
+    def get_url(self):
+        url = 'http://'+self.kdmid_subdomain+'.kdmid.ru/queue/OrderInfo.aspx?id='+self.order_id+'&cd='+self.code
         return url
 
     def write_success_file(self, text, status): 
         d ={}
         d['status'] = status
         d['message'] = text
+
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+            
         if d['status'] == 'success':
-            with open(self.order_id+"_"+self.code+"_success.json", 'w', encoding="utf-8") as f:
+            with open(os.path.join(self.directory, "success.json"), 'w', encoding="utf-8") as f:
                 json.dump(d, f)
         elif d['status'] == 'error':
-            with open(self.order_id+"_"+self.code+"_error.json", 'w', encoding="utf-8") as f:
-                json.dump(d, f)    
+            with open(os.path.join(self.directory, "error.json"), 'w', encoding="utf-8") as f:
+                json.dump(d, f)
         
     def check_exists_by_xpath(self, xpath, driver):
         mark = False
@@ -79,9 +82,13 @@ class QueueChecker:
             return mark
     
     def screenshot_captcha(self, driver, error_screen=None): 
-		   # make a screenshot of the window, crop the image to get captcha only, 
-		   # process the image: remove grey background, make letters black
-        driver.save_screenshot("screenshot.png")
+		# make a screenshot of the window, crop the image to get captcha only, 
+		# process the image: remove grey background, make letters black
+
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+        driver.save_screenshot(os.path.join(self.directory, "screenshot.png"))
         
         screenshot = driver.get_screenshot_as_base64()
         img = Image.open(BytesIO(base64.b64decode(screenshot)))
@@ -102,9 +109,9 @@ class QueueChecker:
         
         box = (int(left), int(top), int(right), int(bottom))
         area = img.crop(box)
-        area.save(self.screen_name, 'PNG')
+        area.save(os.path.join(self.directory, self.screen_name), 'PNG')
         
-        img  = cv2.imread(self.screen_name)
+        img  = cv2.imread(os.path.join(self.directory, self.screen_name))
         # Convert to grayscale
         c_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         # Median filter
@@ -116,26 +123,24 @@ class QueueChecker:
         out = removeIsland(out, 30)
         # Median filter
         out = cv2.medianBlur(out,3)
-        cv2.imwrite(self.image_name, out*255)
-        os.remove(self.screen_name)
-        os.remove("screenshot.png")
+        cv2.imwrite(os.path.join(self.directory, self.image_name), out*255)
     
     def recognize_image(self): 
-        digits = pytesseract.image_to_string(self.image_name, config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789')
+        digits = pytesseract.image_to_string(os.path.join(self.directory, self.image_name), config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789')
         return digits
 
-    def check_queue(self, kdmid_subdomain, order_id, code): 
+    def check_queue(self): 
         message = ''
         status = ''
-        print('Checking queue for: {} - {}'.format(order_id, code))
-        logging.info('Checking queue for: {} - {}'.format(order_id, code))
+        print('Checking queue for: {} - {}'.format(self.order_id, self.code))
+        logging.info('Checking queue for: {} - {}'.format(self.order_id, self.code))
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         # driver = webdriver.Chrome(ChromeDriverManager(driver_version='114.0.5735.90').install(), options=chrome_options) # driver=webdriver.Chrome(ChromeDriverManager(version='114.0.5735.90').install())
         driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", options=chrome_options)
         driver.maximize_window()
         
-        url = self.get_url(kdmid_subdomain, order_id, code)
+        url = self.get_url()
         driver.get(url)
             
         error = True
@@ -184,8 +189,9 @@ class QueueChecker:
                         EC.presence_of_element_located((By.XPATH, self.text_form))
                     )
                 except:
-                    print("Element not found")
-                    message = 'Error happened, check the info you proveided'
+                    print("Element not found, probably 'not a robot' check")
+                    print(driver.page_source)
+                    message = 'Something went wrong, probably, error in the web page. Please, try again later.'
                     status = 'error'
                     self.write_success_file(message, status)
                     logging.warning(f'{message}')
@@ -218,10 +224,10 @@ class QueueChecker:
             logging.info(message)
             
         driver.quit()
-        if os.path.exists(self.screen_name):
-            os.remove(self.screen_name)
-        if os.path.exists(self.image_name):
-            os.remove(self.image_name)         
+        # if os.path.exists(os.path.join(self.directory, self.screen_name)):
+        #     os.remove(os.path.join(self.directory, self.screen_name))
+        # if os.path.exists(os.path.join(self.directory, self.image_name)):
+        #     os.remove(os.path.join(self.directory, self.image_name))         
               
         return message, status
 
