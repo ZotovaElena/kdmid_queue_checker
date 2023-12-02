@@ -22,6 +22,7 @@ from io import BytesIO
 from PIL import Image
 
 from core.image_processing import removeIsland
+import config
 
 import logging
 logging.basicConfig(filename='queue.log',
@@ -47,6 +48,7 @@ class QueueChecker:
         self.checkbox = "//input[@id='ctl00_MainContent_RadioButtonList1_0']" 
         self.error_code = "//span[@id='ctl00_MainContent_Label_Message']"
         self.captcha_error = "//span[@id='ctl00_MainContent_lblCodeErr']"
+        self.main_content = "//span[@id='ctl00_MainContent_Content']" # span id="ctl00_MainContent_Content"
 
     def write_success_file(self, text, status): 
         d ={}
@@ -58,10 +60,10 @@ class QueueChecker:
             
         if d['status'] == 'success':
             with open(os.path.join(self.directory, "success.json"), 'w', encoding="utf-8") as f:
-                json.dump(d, f)
+                json.dump(d, f, ensure_ascii=False)
         elif d['status'] == 'error':
             with open(os.path.join(self.directory, "error.json"), 'w', encoding="utf-8") as f:
-                json.dump(d, f)
+                json.dump(d, f, ensure_ascii=False)
         
     def check_exists_by_xpath(self, xpath, driver):
         mark = False
@@ -138,18 +140,7 @@ class QueueChecker:
             digits = self.recognize_image()
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.text_form))).send_keys(str(digits))
             time.sleep(1)       
-            # if the security code is wrong, expired or not from this order, stop the process
-            try:
-                element = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, self.error_code))
-                )
-                status = 'error'
-                message = 'The security code {} is written wrong, has expired or is not from this order. Theck it and try again.'.format(self.code)             
-                self.write_success_file(str(message), str(status))	
-                logging.warning(f'{message}')
-                break
-            except:
-                pass
+
             # imitate clicks on the buttons
             if self.check_exists_by_xpath(self.button_dalee, driver): 
                 driver.find_element(By.XPATH, self.button_dalee).click()
@@ -173,14 +164,25 @@ class QueueChecker:
                         EC.presence_of_element_located((By.XPATH, self.text_form))
                     )
                 except:
-                    print("Element not found, probably 'not a robot' check")
                     
-                    message = 'Something went wrong, probably, error in the web page. Please, try again some minutes (hours) later.'
+                    print('HERE')
+                    if self.check_exists_by_xpath(self.main_content, driver): 
+                        element = driver.find_element(By.XPATH, self.main_content)
+                        message = element.text
+                        status = 'error'
+                        self.write_success_file(message, status)
+                        logging.warning(f'{message}')
+                        logging.warning(f'{driver.page_source}')
+                        return message
+                    
+                    print("Element not found, probably 'not a robot' check")
+                    message = 'Что-то пошло не так, возможно, проблемы с сайтом, попробуйте еще раз позже.'
                     status = 'error'
                     self.write_success_file(message, status)
                     logging.warning(f'{message}')
                     logging.warning(f'{driver.page_source}')
                     return message
+                
                 # clear the text form and repeat the process
                 driver.find_element(By.XPATH, self.text_form).clear()
 
@@ -202,7 +204,7 @@ class QueueChecker:
                 status = 'success'         
                 self.write_success_file(message, str(status))			
             else: 
-                message = '{} - no free timeslots for now'.format(datetime.date.today())
+                message = '{} - no free timeslots for now. Next check in {} hours'.format(datetime.date.today(), config.EVERY_HOURS)
                 print(message)
                 logging.info(message)
         except: 
