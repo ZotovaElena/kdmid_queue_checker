@@ -130,7 +130,11 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     
     await bot.send_message(chat_id, f"Проверка очереди закончилась: {message}") # should not appear before While ends
                       
-    # TODO at this moment remove user data and success/error files from the directory
+
+    if os.path.isfile(os.path.join(checker.directory, "success.json")):
+        os.remove(os.path.join(checker.directory, "success.json"))
+    if os.path.isfile(os.path.join(checker.directory, "error.json")):
+        os.remove(os.path.join(checker.directory, "error.json"))
     return ConversationHandler.END # may be shouldn't be the end?
 
 # TODO user should have some possibility to cancel the process 

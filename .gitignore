@@ -12,4 +12,3 @@ logs
 sample.txt
 *.key
 _*.*
-**/userdata/

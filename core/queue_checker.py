@@ -136,6 +136,7 @@ class QueueChecker:
         error_screen = False # error if captcha is not recognized
         # iterate until captcha is recognized 
         while error: 
+            time.sleep(6)
             self.screenshot_captcha(driver, error_screen)
             digits = self.recognize_image()
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, self.text_form))).send_keys(str(digits))
